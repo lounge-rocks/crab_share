@@ -67,24 +67,30 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         exit(1);
     }
 
-    // read ~/.aws/credentials.json
-    let path = Path::new(&env::var("HOME").unwrap())
-        .join(".aws")
-        .join("credentials.json");
-    let cred_file = match fs::read_to_string(path) {
-        Ok(f) => f,
-        Err(e) => {
-            println!("error reading credentials file: {}", e);
-            exit(1);
-        }
-    };
-    let json_credentials: JSONCredentials = match serde_json::from_str(&cred_file) {
+    let json_credentials = match get_creds_from_env() {
         Ok(c) => c,
-        Err(e) => {
-            println!("error parsing credentials file: {}", e);
-            exit(1);
+        Err(_) => {
+            // read ~/.aws/credentials.json
+            let path = Path::new(&env::var("HOME").unwrap())
+                .join(".aws")
+                .join("credentials.json");
+            let cred_file = match fs::read_to_string(path) {
+                Ok(f) => f,
+                Err(e) => {
+                    println!("error reading credentials file: {}", e);
+                    exit(1);
+                }
+            };
+            match serde_json::from_str(&cred_file) {
+                Ok(c) => c,
+                Err(e) => {
+                    println!("error parsing credentials file: {}", e);
+                    exit(1);
+                }
+            }
         }
     };
+
     let credentials: Credentials = json_credentials.clone().try_into()?;
 
     // connect to s3
@@ -102,7 +108,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let content = match args.path.is_dir() {
         true => {
             println!("zipping directory...");
-            let src_dir = args.path.to_str().unwrap().to_string();
+            let src_dir = args.path.canonicalize()?.to_str().unwrap().to_string();
             args.path = PathBuf::from(src_dir.clone() + ".zip");
             zip::zip_folder(&src_dir)?
         }
@@ -141,4 +147,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("\n{}", url);
 
     Ok(())
+}
+
+fn get_creds_from_env() -> Result<JSONCredentials, Box<dyn std::error::Error>> {
+    let url = env::var("S3_URL")?;
+    let access_key = env::var("S3_ACCESS_KEY")?;
+    let secret_key = env::var("S3_SECRET_KEY")?;
+    Ok(JSONCredentials {
+        url,
+        access_key,
+        secret_key,
+    })
 }
