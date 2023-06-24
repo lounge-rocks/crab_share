@@ -9,6 +9,8 @@ use std::{
 use s3::creds::{error::CredentialsError, Credentials};
 use s3::{Bucket, Region};
 
+mod zip;
+
 #[derive(Parser, Debug)]
 #[command(author, version)]
 struct Args {
@@ -58,7 +60,7 @@ fn get_time_from_str(input: &str) -> u32 {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let args = Args::parse();
+    let mut args = Args::parse();
 
     if !args.path.exists() {
         println!("path does not exist");
@@ -96,13 +98,28 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 1. Upload a file to the bucket.
     // <uuid>/filename
 
+    // 1.0. Check if file is a directory
+    let content = match args.path.is_dir() {
+        true => {
+            println!("zipping directory...");
+            let src_dir = args.path.to_str().unwrap().to_string();
+            args.path = PathBuf::from(src_dir.clone() + ".zip");
+            zip::zip_folder(&src_dir)?
+        }
+        false => fs::read(&args.path)?,
+    };
+
     // 1.1. Read file
-    let file = fs::read(&args.path)?;
     // 1.2. Create path
     let path =
         uuid::Uuid::new_v4().to_string() + "/" + args.path.file_name().unwrap().to_str().unwrap();
     // 1.3. Upload file to bucket
-    let reponse = bucket.put_object_blocking(&path, &file)?;
+    println!(
+        "uploading file with size {} bytes to {} ...",
+        content.len(),
+        path
+    );
+    let reponse = bucket.put_object_blocking(&path, &content)?;
     if reponse.status_code() != 200 {
         println!("error uploading file: {:?}", reponse);
         exit(1);
@@ -112,10 +129,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // -> presigned url
 
     // 2.1. Create presigned url
-    let url = bucket.presign_get(&path, get_time_from_str(&args.expires), None)?;
+    let url = match bucket.presign_get(&path, get_time_from_str(&args.expires), None) {
+        Ok(u) => u,
+        Err(e) => {
+            println!("error creating presigned url: {}", e);
+            exit(1);
+        }
+    };
 
     // 2.2. Print url
-    println!("{}", url);
+    println!("\n{}", url);
 
     Ok(())
 }
