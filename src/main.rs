@@ -49,14 +49,14 @@ impl TryInto<Credentials> for JSONCredentials {
 
 /// calculate the time from a string
 /// for example: 7d -> 7 days (in seconds)
-fn get_time_from_str(input: &str) -> u32 {
+fn get_time_from_str(input: &str) -> Option<u32> {
     let (time, denom) = input.split_at(input.len() - 1);
-    match denom.chars().next().unwrap() {
-        'd' => time.parse::<u32>().unwrap() * 24 * 60 * 60,
-        'h' => time.parse::<u32>().unwrap() * 60 * 60,
-        'm' => time.parse::<u32>().unwrap() * 60,
-        's' => time.parse::<u32>().unwrap(),
-        _ => input.parse::<u32>().unwrap(),
+    match denom.chars().next()? {
+        'd' => Some(time.parse::<u32>().ok()? * 24 * 60 * 60),
+        'h' => Some(time.parse::<u32>().ok()? * 60 * 60),
+        'm' => Some(time.parse::<u32>().ok()? * 60),
+        's' => Some(time.parse::<u32>().ok()?),
+        _ => Some(input.parse::<u32>().ok()?),
     }
 }
 
@@ -72,7 +72,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Ok(c) => c,
         Err(_) => {
             // read ~/.aws/credentials.json
-            let path = Path::new(&env::var("HOME").unwrap())
+            let path = Path::new(&env::var("HOME").expect("HOME env var not set"))
                 .join(".aws")
                 .join("credentials.json");
             let cred_file = match fs::read_to_string(path) {
@@ -109,7 +109,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let content = match args.path.is_dir() {
         true => {
             println!("zipping directory...");
-            let src_dir = args.path.canonicalize()?.to_str().unwrap().to_string();
+            let src_dir = args.path.canonicalize()?.to_string_lossy().to_string();
             args.path = PathBuf::from(src_dir.clone() + ".zip");
             zip::zip_folder(&src_dir)?
         }
@@ -118,8 +118,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // 1.1. Read file
     // 1.2. Create path
-    let path =
-        uuid::Uuid::new_v4().to_string() + "/" + args.path.file_name().unwrap().to_str().unwrap();
+    let path = uuid::Uuid::new_v4().to_string()
+        + "/"
+        + args
+            .path
+            .canonicalize()
+            .expect("Path could not be canonicalized")
+            .file_name()
+            .expect("A canonicalized path should have a file name")
+            .to_string_lossy()
+            .as_ref();
     // 1.3. Upload file to bucket
     println!(
         "uploading file with size {} bytes to {} ...",
@@ -136,7 +144,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // -> presigned url
 
     // 2.1. Create presigned url
-    let url = match bucket.presign_get(&path, get_time_from_str(&args.expires), None) {
+    let expiry_secs = match get_time_from_str(&args.expires) {
+        Some(s) => s,
+        None => {
+            println!("invalid expiry time");
+            exit(1);
+        }
+    };
+    let url = match bucket.presign_get(&path, expiry_secs, None) {
         Ok(u) => u,
         Err(e) => {
             println!("error creating presigned url: {}", e);

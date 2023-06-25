@@ -46,7 +46,9 @@ where
     let mut buffer = Vec::new();
     for entry in it {
         let path = entry.path();
-        let name = path.strip_prefix(Path::new(prefix)).unwrap();
+        let name = path
+            .strip_prefix(Path::new(prefix))
+            .expect("Path should start with prefix. This is a bug.");
 
         // Write file or directory explicitly
         // Some unzip tools unzip files with directory paths correctly, some do not!
