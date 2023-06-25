@@ -1,3 +1,4 @@
+use bytesize::ByteSize;
 use clap::Parser;
 use serde::Deserialize;
 use std::{
@@ -122,7 +123,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 1.3. Upload file to bucket
     println!(
         "uploading file with size {} bytes to {} ...",
-        content.len(),
+        ByteSize(content.len() as u64),
         path
     );
     let reponse = bucket.put_object_blocking(&path, &content)?;
