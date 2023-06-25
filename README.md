@@ -52,6 +52,26 @@ The file should have the following format:
 
 This repository contains a `flake.nix` file which can be used to build the application using the Nix package manager.
 
+### Using homebrew
+
+To install the application using homebrew, run:
+
+```bash
+# Add the tap to homebrew
+brew tap --force-auto-update lounge-rocks/crab_share https://github.com/lounge-rocks/crab_share
+
+# Install the application
+brew install crab_share
+```
+
+In case you want to remove the application, run:
+
+```bash
+brew uninstall crab_share
+brew untap lounge-rocks/crab_share
+brew autoremove
+```
+
 ### Using cargo
 
 Make sure you have cargo installed.
