@@ -14,11 +14,11 @@ mod zip;
 #[derive(Parser, Debug)]
 #[command(author, version)]
 struct Args {
-    /// Time to wait before greeting
+    /// How long the link should be valid for (default: 7d)
     #[arg(short, long, default_value = "7d")]
     expires: String,
 
-    /// Number of times to greet
+    /// Path to upload. If it is a directory, it will be zipped.
     #[arg()]
     path: PathBuf,
 }
