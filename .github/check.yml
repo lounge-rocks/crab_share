@@ -1,0 +1,22 @@
+name: check
+
+on:
+  push:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check:
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+      - run: cargo fmt --check
+      - run: cargo check
+      - run: |
+          cargo install --locked cargo-deny
+          cargo deny check

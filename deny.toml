@@ -1,0 +1,24 @@
+[advisories]
+vulnerability = "deny"
+unmaintained = "deny"
+notice = "deny"
+unsound = "deny"
+ignore = []
+
+[bans]
+multiple-versions = "allow"
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+
+[licenses]
+unlicensed = "deny"
+allow-osi-fsf-free = "both"
+copyleft = "allow"
+# We want really high confidence when inferring licenses from text
+confidence-threshold = 0.93
+allow = [
+    "Unicode-DFS-2016",
+    "CC0-1.0",
+]
