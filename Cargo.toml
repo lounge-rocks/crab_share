@@ -1,6 +1,7 @@
 [package]
 name = "crab_share"
-author = "lukas"
+authors = ["Lukas Sabatschus <lukas@sabatschus.de>", "MayNiklas"]
+license = "MIT OR Apache-2.0"
 version = "0.1.0"
 edition = "2021"
 
