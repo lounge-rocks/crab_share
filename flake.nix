@@ -19,15 +19,17 @@
         defaultPackage = packages.crab_share;
 
         packages = flake-utils.lib.flattenTree rec {
-          crab_share = pkgs.rustPlatform.buildRustPackage {
-            pname = "crab_share";
-            version = "0.1.0";
-            src = self;
-            cargoLock = { lockFile = ./Cargo.lock; };
-            nativeBuildInputs = with pkgs;
-              lib.optionals stdenv.isLinux [ pkg-config ];
-            buildInputs = with pkgs; [ openssl ];
-          };
+          crab_share =
+            let manifest = (lib.importTOML ./Cargo.toml).package;
+            in pkgs.rustPlatform.buildRustPackage {
+              pname = manifest.name;
+              version = manifest.version;
+              src = lib.cleanSource self;
+              cargoLock = { lockFile = ./Cargo.lock; };
+              nativeBuildInputs = with pkgs;
+                lib.optionals stdenv.isLinux [ pkg-config ];
+              buildInputs = with pkgs; [ openssl ]; # TODO: check how to make this work on darwin?
+            };
         };
 
       });
