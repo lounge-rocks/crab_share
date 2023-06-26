@@ -62,6 +62,9 @@ brew tap --force-auto-update lounge-rocks/crab_share https://github.com/lounge-r
 
 # Install the application
 brew install crab_share
+
+# Install the application from main branch
+brew install --HEAD crab_share 
 ```
 
 In case you want to remove the application, run:
