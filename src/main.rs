@@ -61,7 +61,7 @@ fn get_time_from_str(input: &str) -> Option<u32> {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut args = Args::parse();
+    let args = Args::parse();
 
     if !args.path.exists() {
         println!("path does not exist");
@@ -105,12 +105,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 1. Upload a file to the bucket.
     // <uuid>/filename
 
+    let path = args
+        .path
+        .canonicalize()
+        .unwrap_or_else(|_| panic!("Path could not be canonicalized: {:?}", args.path));
+    let mut file_name = path
+        .file_name()
+        .expect("A canonicalized path should have a file name")
+        .to_string_lossy();
+
     // 1.0. Check if file is a directory
     let content = match args.path.is_dir() {
         true => {
             println!("zipping directory...");
             let src_dir = args.path.canonicalize()?.to_string_lossy().to_string();
-            args.path = PathBuf::from(src_dir.clone() + ".zip");
+            file_name = (file_name.to_string() + ".zip").into();
             zip::zip_folder(&src_dir)?
         }
         false => fs::read(&args.path)?,
@@ -118,16 +127,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // 1.1. Read file
     // 1.2. Create path
-    let path = uuid::Uuid::new_v4().to_string()
-        + "/"
-        + args
-            .path
-            .canonicalize()
-            .expect("Path could not be canonicalized")
-            .file_name()
-            .expect("A canonicalized path should have a file name")
-            .to_string_lossy()
-            .as_ref();
+    let path = uuid::Uuid::new_v4().to_string() + "/" + file_name.as_ref();
     // 1.3. Upload file to bucket
     println!(
         "uploading file with size {} bytes to {} ...",
