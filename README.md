@@ -26,7 +26,7 @@ export S3_ACCESS_KEY=
 export S3_SECRET_KEY=
 ```
 
-### Config file
+### Token file
 
 ```bash
 mkdir ~/.aws
@@ -43,6 +43,22 @@ The file should have the following format:
     "secretKey": "secretKey",
     "api": "s3v4",
     "path": "auto"
+}
+```
+
+### Config file
+
+```bash
+touch ~/.aws/crab_share.json
+vim ~/.aws/crab_share.json
+```
+
+The file should have the following format:
+
+```json
+{
+    "bucket": "your-bucket-name",
+    "region": "eu-central-1"
 }
 ```
 

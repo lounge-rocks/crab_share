@@ -1,128 +1,43 @@
 use bytesize::ByteSize;
-use clap::Parser;
-use serde::Deserialize;
-use std::{
-    env, fs,
-    path::{Path, PathBuf},
-    process::exit,
-};
+use std::{fs, process::exit};
 
-use s3::creds::{error::CredentialsError, Credentials};
 use s3::{Bucket, Region};
 
+mod config;
 mod zip;
 
-#[derive(Parser, Debug)]
-#[command(author, version)]
-struct Args {
-    /// How long the link should be valid for (default: 7d)
-    #[arg(short, long, default_value = "7d")]
-    expires: String,
-
-    /// Path to upload. If it is a directory, it will be zipped.
-    #[arg()]
-    path: PathBuf,
-}
-
-#[derive(Deserialize, Debug, Clone)]
-struct JSONCredentials {
-    url: String,
-    #[serde(rename = "accessKey")]
-    access_key: String,
-    #[serde(rename = "secretKey")]
-    secret_key: String,
-}
-
-impl TryInto<Credentials> for JSONCredentials {
-    type Error = CredentialsError;
-
-    fn try_into(self) -> Result<Credentials, Self::Error> {
-        Credentials::new(
-            Some(&self.access_key),
-            Some(&self.secret_key),
-            None,
-            None,
-            None,
-        )
-    }
-}
-
-/// calculate the time from a string
-/// for example: 7d -> 7 days (in seconds)
-fn get_time_from_str(input: &str) -> Option<u32> {
-    let (time, denom) = input.split_at(input.len() - 1);
-    match denom.chars().next()? {
-        'd' => Some(time.parse::<u32>().ok()? * 24 * 60 * 60),
-        'h' => Some(time.parse::<u32>().ok()? * 60 * 60),
-        'm' => Some(time.parse::<u32>().ok()? * 60),
-        's' => Some(time.parse::<u32>().ok()?),
-        _ => Some(input.parse::<u32>().ok()?),
-    }
-}
-
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let args = Args::parse();
-
-    if !args.path.exists() {
-        println!("path does not exist");
-        exit(1);
-    }
-
-    let json_credentials = match get_creds_from_env() {
-        Ok(c) => c,
-        Err(_) => {
-            // read ~/.aws/credentials.json
-            let path = Path::new(&env::var("HOME").expect("HOME env var not set"))
-                .join(".aws")
-                .join("credentials.json");
-            let cred_file = match fs::read_to_string(path) {
-                Ok(f) => f,
-                Err(e) => {
-                    println!("error reading credentials file: {}", e);
-                    exit(1);
-                }
-            };
-            match serde_json::from_str(&cred_file) {
-                Ok(c) => c,
-                Err(e) => {
-                    println!("error parsing credentials file: {}", e);
-                    exit(1);
-                }
-            }
-        }
-    };
-
-    let credentials: Credentials = json_credentials.clone().try_into()?;
+    let config = config::Config::parse()?;
 
     // connect to s3
     let region = Region::Custom {
-        region: "eu-central-1".to_string(),
-        endpoint: json_credentials.url,
+        region: config.bucket.clone(),
+        endpoint: config.url,
     };
 
-    let bucket = Bucket::new("sharepy", region, credentials)?.with_path_style();
+    let bucket = Bucket::new(&config.bucket, region, config.credentials)?.with_path_style();
 
     // 1. Upload a file to the bucket.
     // <uuid>/filename
 
-    let path = args
+    let path = config
         .path
         .canonicalize()
-        .unwrap_or_else(|_| panic!("Path could not be canonicalized: {:?}", args.path));
+        .unwrap_or_else(|_| panic!("Path could not be canonicalized: {:?}", config.path));
     let mut file_name = path
         .file_name()
         .expect("A canonicalized path should have a file name")
         .to_string_lossy();
 
     // 1.0. Check if file is a directory
-    let content = match args.path.is_dir() {
+    let content = match config.path.is_dir() {
         true => {
             println!("zipping directory...");
-            let src_dir = args.path.canonicalize()?.to_string_lossy().to_string();
+            let src_dir = config.path.canonicalize()?.to_string_lossy().to_string();
             file_name = (file_name.to_string() + ".zip").into();
             zip::zip_folder(&src_dir)?
         }
-        false => fs::read(&args.path)?,
+        false => fs::read(&config.path)?,
     };
 
     // 1.1. Read file
@@ -144,14 +59,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // -> presigned url
 
     // 2.1. Create presigned url
-    let expiry_secs = match get_time_from_str(&args.expires) {
-        Some(s) => s,
-        None => {
-            println!("invalid expiry time");
-            exit(1);
-        }
-    };
-    let url = match bucket.presign_get(&path, expiry_secs, None) {
+    let url = match bucket.presign_get(&path, config.expires, None) {
         Ok(u) => u,
         Err(e) => {
             println!("error creating presigned url: {}", e);
@@ -163,15 +71,4 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("\n{}", url);
 
     Ok(())
-}
-
-fn get_creds_from_env() -> Result<JSONCredentials, Box<dyn std::error::Error>> {
-    let url = env::var("S3_URL")?;
-    let access_key = env::var("S3_ACCESS_KEY")?;
-    let secret_key = env::var("S3_SECRET_KEY")?;
-    Ok(JSONCredentials {
-        url,
-        access_key,
-        secret_key,
-    })
 }
