@@ -81,10 +81,27 @@ impl Config {
 
         // try to read ~/.aws/crab_share.json
         let json_config = JSONConfig::get_from_file();
-        let partial_config = partial_config.merge(PartialConfig::from(json_config?));
+        let partial_config = if let Ok(json_config) = json_config {
+            partial_config.merge(PartialConfig::from(json_config))
+        } else {
+            println!(
+                "Could not read ~/.aws/crab_share.json: {}",
+                json_config.unwrap_err()
+            );
+            partial_config
+        };
 
-        let partial_config_creds: PartialConfig = JSONCredentials::get_from_file()?.into();
-        let partial_config = partial_config.merge(partial_config_creds);
+        let partial_config_creds: Result<PartialConfig, ConfigError> =
+            JSONCredentials::get_from_file().map(|c| c.into());
+        let partial_config = if let Ok(partial_config_creds) = partial_config_creds {
+            partial_config.merge(partial_config_creds)
+        } else {
+            println!(
+                "Could not read ~/.aws/credentials.json: {}",
+                partial_config_creds.unwrap_err()
+            );
+            partial_config
+        };
 
         // fill the rest with the static defaults
         let partial_config = partial_config.merge(PartialConfig::static_default());
@@ -102,25 +119,33 @@ impl Config {
         Ok(Config {
             expires: partial_config
                 .expires
-                .map(|e| get_time_from_str(&e))
-                .ok_or_else(|| ConfigError::Parse("No expires given".to_string()))?
-                .ok_or_else(|| ConfigError::Parse("Invalid expire time given".to_string()))?,
+                .as_deref()
+                .map(get_time_from_str)
+                .expect("expires should always be set by static default")
+                .ok_or_else(move || {
+                    ConfigError::Parse(format!(
+                        "Could not parse expires: \"{}\"",
+                        partial_config.expires.unwrap()
+                    ))
+                })?,
             bucket: partial_config
                 .bucket
-                .ok_or_else(|| ConfigError::Parse("No bucket given".to_string()))?,
+                .ok_or_else(|| ConfigError::Missing("bucket".to_string()))?,
             region: partial_config
                 .region
                 .expect("Region should always be set by static default"),
             url: partial_config
                 .url
                 // make into error
-                .ok_or(ConfigError::Parse("No url given".to_string()))?,
+                .ok_or(ConfigError::Missing("url".to_string()))?,
             path: partial_config
                 .path
-                .ok_or_else(|| ConfigError::Parse("No path given".to_string()))?,
+                .ok_or_else(|| ConfigError::Missing("path".to_string()))?
+                .canonicalize()
+                .map_err(|e| ConfigError::Parse(format!("Could not canonicalize path: {}", e)))?,
             credentials: partial_config
                 .credentials
-                .ok_or_else(|| ConfigError::Parse("No credentials given".to_string()))?,
+                .ok_or_else(|| ConfigError::Missing("credentials".to_string()))?,
         })
     }
 }

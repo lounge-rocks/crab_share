@@ -44,7 +44,7 @@ impl From<JSONCredentials> for PartialConfig {
         };
 
         PartialConfig {
-            url: json_credentials.url.clone(),
+            url: json_credentials.url,
             credentials,
             ..PartialConfig::default()
         }
@@ -56,24 +56,7 @@ impl JSONCredentials {
         let path = Path::new(&env::var("HOME").expect("HOME env var not set"))
             .join(".aws")
             .join("credentials.json");
-        // let cred_file = match fs::read_to_string(path) {
-        //     Ok(f) => f,
-        //     Err(e) => {
-        //         return Err(ConfigError::Io(format!(
-        //             "error reading credentials file: {e}",
-        //         )));
-        //         // return JSONCredentials::default();
-        //     }
-        // };
         let cred_file = fs::read_to_string(path)?;
-        // match serde_json::from_str(&cred_file) {
-        //     Ok(c) => c,
-        //     Err(e) => {
-        //         // return Err(ConfigError::ParseError(format!(
-        //         //     "error parsing credentials file: {e}",
-        //         // )));
-        //     }
-        // }
         serde_json::from_str(&cred_file)
             .map_err(|e| ConfigError::Parse(format!("error parsing credentials file: {e}",)))
     }
@@ -83,6 +66,8 @@ impl JSONCredentials {
 pub(crate) struct JSONConfig {
     bucket: Option<String>,
     region: Option<String>,
+    url: Option<String>,
+    expires: Option<String>,
 }
 
 impl From<JSONConfig> for PartialConfig {
@@ -90,10 +75,10 @@ impl From<JSONConfig> for PartialConfig {
         PartialConfig {
             bucket: json_config.bucket,
             region: json_config.region,
-            url: None,
+            url: json_config.url,
             path: None,
             credentials: None,
-            expires: None,
+            expires: json_config.expires,
         }
     }
 }
@@ -103,26 +88,7 @@ impl JSONConfig {
         let path = Path::new(&env::var("HOME").expect("HOME env var not set"))
             .join(".aws")
             .join("crab_share.json");
-        // let config_file = match fs::read_to_string(&path) {
-        //     Ok(f) => f,
-        //     Err(e) => {
-        //         return Err(ConfigError::Io(format!(
-        //             "error reading config file {}: {e}",
-        //             path.display(),
-        //         )));
-        //     }
-        // };
         let config_file = fs::read_to_string(&path)?;
-        // match serde_json::from_str(&config_file) {
-        //     Ok(c) => c,
-        //     Err(e) => {
-        //         // Err(ConfigError::ParseError(format!(
-        //         //     "error parsing config file {}: {e}",
-        //         //     path.display(),
-        //         // )))
-        //         JSONConfig::default()
-        //     }
-        // }
         serde_json::from_str(&config_file).map_err(|e| {
             ConfigError::Parse(format!("error parsing config file {}: {e}", path.display(),))
         })

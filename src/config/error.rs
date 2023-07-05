@@ -10,6 +10,7 @@ use s3::creds::error::CredentialsError;
 pub enum ConfigError {
     Io(std::io::Error),
     Parse(String),
+    Missing(String),
     Credentials(CredentialsError),
 }
 
@@ -17,7 +18,8 @@ impl Display for ConfigError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             ConfigError::Io(e) => write!(f, "IO Error: {}", e),
-            ConfigError::Parse(e) => write!(f, "Parse Error: {}", e),
+            ConfigError::Parse(e) => write!(f, "{}", e),
+            ConfigError::Missing(e) => write!(f, "Missing config option: {}", e),
             ConfigError::Credentials(e) => write!(f, "Credentials Error: {}", e),
         }
     }

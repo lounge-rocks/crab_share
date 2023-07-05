@@ -6,8 +6,14 @@ use s3::{Bucket, Region};
 mod config;
 mod zip;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let config = config::Config::parse()?;
+fn main() {
+    let config = match config::Config::parse() {
+        Ok(c) => c,
+        Err(e) => {
+            println!("{}", e);
+            exit(1);
+        }
+    };
 
     // connect to s3
     let region = Region::Custom {
@@ -15,7 +21,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         endpoint: config.url,
     };
 
-    let bucket = Bucket::new(&config.bucket, region, config.credentials)?.with_path_style();
+    let bucket = match Bucket::new(&config.bucket, region, config.credentials) {
+        Ok(b) => b.with_path_style(),
+        Err(e) => {
+            println!("error connecting to s3: {}", e);
+            exit(1);
+        }
+    };
 
     // 1. Upload a file to the bucket.
     // <uuid>/filename
@@ -33,11 +45,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let content = match config.path.is_dir() {
         true => {
             println!("zipping directory...");
-            let src_dir = config.path.canonicalize()?.to_string_lossy().to_string();
+            let src_dir = config.path.to_string_lossy().to_string();
             file_name = (file_name.to_string() + ".zip").into();
-            zip::zip_folder(&src_dir)?
+            match zip::zip_folder(&src_dir) {
+                Ok(c) => c,
+                Err(e) => {
+                    println!("error zipping directory: {}", e);
+                    exit(1);
+                }
+            }
         }
-        false => fs::read(&config.path)?,
+        false => match fs::read(&config.path) {
+            Ok(c) => c,
+            Err(e) => {
+                println!("error reading file: {}", e);
+                exit(1);
+            }
+        },
     };
 
     // 1.1. Read file
@@ -49,7 +73,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         ByteSize(content.len() as u64),
         path
     );
-    let reponse = bucket.put_object_blocking(&path, &content)?;
+    let reponse = match bucket.put_object_blocking(&path, &content) {
+        Ok(r) => r,
+        Err(e) => {
+            println!("error uploading file: {}", e);
+            exit(1);
+        }
+    };
     if reponse.status_code() != 200 {
         println!("error uploading file: {:?}", reponse);
         exit(1);
@@ -69,6 +99,4 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // 2.2. Print url
     println!("\n{}", url);
-
-    Ok(())
 }
