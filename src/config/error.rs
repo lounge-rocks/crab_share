@@ -4,14 +4,12 @@ use std::{
     fmt::{Display, Formatter},
 };
 
-use s3::creds::error::CredentialsError;
-
 #[derive(Debug)]
 pub enum ConfigError {
     Io(std::io::Error),
     Parse(String),
     Missing(String),
-    Credentials(CredentialsError),
+    // Credentials(CredentialsError),
 }
 
 impl Display for ConfigError {
@@ -20,7 +18,7 @@ impl Display for ConfigError {
             ConfigError::Io(e) => write!(f, "IO Error: {}", e),
             ConfigError::Parse(e) => write!(f, "{}", e),
             ConfigError::Missing(e) => write!(f, "Missing config option: {}", e),
-            ConfigError::Credentials(e) => write!(f, "Credentials Error: {}", e),
+            // ConfigError::Credentials(e) => write!(f, "Credentials Error: {}", e),
         }
     }
 }
@@ -39,8 +37,8 @@ impl From<env::VarError> for ConfigError {
     }
 }
 
-impl From<CredentialsError> for ConfigError {
-    fn from(e: CredentialsError) -> Self {
-        ConfigError::Credentials(e)
-    }
-}
+// impl From<CredentialsError> for ConfigError {
+//     fn from(e: CredentialsError) -> Self {
+//         ConfigError::Credentials(e)
+//     }
+// }

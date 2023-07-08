@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use clap::Parser;
-use s3::creds::Credentials;
+use rusty_s3::Credentials;
 
 use super::PartialConfig;
 
@@ -43,20 +43,17 @@ pub(crate) struct Args {
 
 impl From<Args> for PartialConfig {
     fn from(args: Args) -> Self {
+        let credentials = match (args.access_key, args.secret_key) {
+            (Some(access_key), Some(secret_key)) => Some(Credentials::new(access_key, secret_key)),
+            _ => None,
+        };
         PartialConfig {
             expires: args.expires,
             bucket: args.bucket,
             url: args.url,
             path: Some(args.path),
             region: args.region,
-            credentials: Credentials::new(
-                args.access_key.as_deref(),
-                args.secret_key.as_deref(),
-                args.session_token.as_deref(),
-                None,
-                None,
-            )
-            .ok(),
+            credentials,
         }
     }
 }

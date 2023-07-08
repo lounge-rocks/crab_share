@@ -1,6 +1,6 @@
 use super::PartialConfig;
 
-use s3::creds::{error::CredentialsError, Credentials};
+use rusty_s3::Credentials;
 use std::{env, path::PathBuf};
 
 #[derive(Debug, Clone, Default)]
@@ -8,9 +8,6 @@ pub(crate) struct EnvConf {
     url: Option<String>,
     access_key: Option<String>,
     secret_key: Option<String>,
-    session_token: Option<String>,
-    security_token: Option<String>,
-    profile: Option<String>,
 
     /// How long the link should be valid for in seconds (default: 7d)
     expires: Option<String>,
@@ -24,16 +21,13 @@ pub(crate) struct EnvConf {
 }
 
 impl TryInto<Credentials> for EnvConf {
-    type Error = CredentialsError;
+    type Error = ();
 
     fn try_into(self) -> Result<Credentials, Self::Error> {
-        Credentials::new(
-            self.access_key.as_deref(),
-            self.secret_key.as_deref(),
-            self.session_token.as_deref(),
-            self.security_token.as_deref(),
-            self.profile.as_deref(),
-        )
+        match (self.access_key, self.secret_key) {
+            (Some(access_key), Some(secret_key)) => Ok(Credentials::new(access_key, secret_key)),
+            _ => Err(()),
+        }
     }
 }
 
@@ -62,9 +56,6 @@ impl EnvConf {
         let url = env::var("S3_URL").ok();
         let access_key = env::var("S3_ACCESS_KEY").ok();
         let secret_key = env::var("S3_SECRET_KEY").ok();
-        let session_token = env::var("S3_SESSION_TOKEN").ok();
-        let security_token = env::var("S3_SECURITY_TOKEN").ok();
-        let profile = env::var("S3_PROFILE").ok();
 
         let expires = env::var("S3_EXPIRES").ok();
         let bucket = env::var("S3_BUCKET").ok();
@@ -74,9 +65,6 @@ impl EnvConf {
             url,
             access_key,
             secret_key,
-            session_token,
-            security_token,
-            profile,
             expires,
             bucket,
             path,

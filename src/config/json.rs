@@ -1,6 +1,6 @@
 use std::{env, fs, path::Path};
 
-use s3::creds::{error::CredentialsError, Credentials};
+use rusty_s3::Credentials;
 use serde::Deserialize;
 
 use super::{error::ConfigError, PartialConfig};
@@ -12,25 +12,16 @@ pub(crate) struct JSONCredentials {
     access_key: Option<String>,
     #[serde(rename = "secretKey")]
     secret_key: Option<String>,
-    #[serde(rename = "sessionToken")]
-    session_token: Option<String>,
-    #[serde(rename = "securityToken")]
-    security_token: Option<String>,
-    #[serde(rename = "profile")]
-    profile: Option<String>,
 }
 
 impl TryInto<Credentials> for JSONCredentials {
-    type Error = CredentialsError;
+    type Error = ();
 
     fn try_into(self) -> Result<Credentials, Self::Error> {
-        Credentials::new(
-            self.access_key.as_deref(),
-            self.secret_key.as_deref(),
-            self.session_token.as_deref(),
-            self.security_token.as_deref(),
-            self.profile.as_deref(),
-        )
+        match (self.access_key, self.secret_key) {
+            (Some(access_key), Some(secret_key)) => Ok(Credentials::new(access_key, secret_key)),
+            _ => Err(()),
+        }
     }
 }
 

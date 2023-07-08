@@ -13,7 +13,7 @@ use self::env::*;
 use std::path::PathBuf;
 
 use clap::Parser;
-use s3::creds::Credentials;
+use rusty_s3::Credentials;
 
 pub struct Config {
     /// How long the link should be valid for in seconds (default: 7d)

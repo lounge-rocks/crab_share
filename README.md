@@ -18,7 +18,6 @@ Options:
 | -r, --region     | eu-central-1 | The S3 region.                   |
 | -a, --access-key |              | The S3 access key.               |
 | -s, --secret-key |              | The S3 secret key.               |
-| -t, --token      |              | The S3 session token.            |
 
 ## Setup
 
@@ -31,9 +30,6 @@ The default options are overwritten by the config file, which are overwritten by
 export S3_URL=
 export S3_ACCESS_KEY=
 export S3_SECRET_KEY=
-export S3_SESSION_TOKEN=
-export S3_SECURITY_TOKEN=
-export S3_PROFILE=
 export S3_EXPIRES=
 export S3_BUCKET=
 export S3_PATH=
@@ -56,10 +52,7 @@ The file should have the following format:
     "accessKey": "accessKey",
     "secretKey": "secretKey",
     "api": "s3v4",
-    "path": "auto",
-    "sessionToken": "sessionToken",
-    "securityToken": "securityToken",
-    "profile": "profile"
+    "path": "auto"
 }
 ```
 
