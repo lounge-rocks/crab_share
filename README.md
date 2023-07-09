@@ -20,6 +20,7 @@ Options:
 | -s, --secret-key      |              | The S3 secret key.                |
 | -c, --compression     | zstd         | The compression algorithm to use. |
 | -z, --zip-single-file | false        | Zip file before uploading.        |
+| -p, --purge           | false        | Purge expired files.              |
 
 ## Setup
 
@@ -38,6 +39,7 @@ export S3_PATH=
 export S3_REGION=
 export S3_COMPRESSION=
 export S3_ZIP_SINGLE_FILE=
+export S3_PURGE=
 ```
 
 ### Token file
@@ -76,7 +78,8 @@ The file should have the following format:
     "url": "https://s3.domain.com",
     "expires": "7d",
     "compression": "zstd",
-    "zipSingleFile": false
+    "zipSingleFile": false,
+    "purge": true
 }
 ```
 
@@ -132,3 +135,19 @@ It's also possible to just build the binary without installing it.
 ```bash
 cargo build --release
 ```
+
+## Inner workings
+
+### Configuration
+
+Internally, we use four different structs to configure the application.
+- `JSONConfig` and `JSONCredentials` are used to parse the config and credentials files from `~/.aws`.
+- `EnvConfig` is used to parse the environment variables.
+- `Args` contains all the options passed to the application.
+- `PartialConfig` is the struct used for merging the different configuration sources. All values are optional. The default values are set as a function of this struct.
+- `Config` is the main struct which contains all the combiled configuration. All values must be set in this struct.
+
+### Purging
+
+Each uploaded file has a ulid in its path. The timestamp part of the ulid is used to determine when the file expires.
+When the `--purge` option is set, the application will check the bucket for expired files and delete them.
