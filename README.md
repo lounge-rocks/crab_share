@@ -5,7 +5,7 @@ A super simple application to upload files to an S3 bucket and generate a sharea
 ## Usage
 
 ```bash
-sharepy <file>
+crab_share <PATH>
 ```
 
 Options:
