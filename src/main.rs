@@ -1,4 +1,5 @@
 use bytesize::ByteSize;
+use indicatif::{ProgressBar, ProgressStyle};
 use std::{fs, process::exit, time::Duration};
 
 use reqwest::Client;
@@ -95,6 +96,14 @@ async fn main() {
     );
     if content.len() > 100 * 1024 * 1024 {
         println!("file too large for simple PUT(> 100MB), uploading with multipart upload");
+        let progress_bar = ProgressBar::new(content.len() as u64);
+        progress_bar.set_style(
+            ProgressStyle::with_template(
+                "{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({bytes_per_sec}, {eta})"
+            )
+            .unwrap()
+            .progress_chars("#>-"));
+
         let action = CreateMultipartUpload::new(&bucket, Some(&config.credentials), &path);
 
         let url = action.sign(ONE_HOUR);
@@ -155,6 +164,9 @@ async fn main() {
         let mut parts = Vec::new();
         for (i, chunk) in content.chunks(chunk_size).enumerate() {
             upload_tx.send((i as u16, chunk.to_vec())).unwrap();
+            // sleep for 1ms to avoid spamming the server
+            std::thread::sleep(std::time::Duration::from_secs(1));
+            progress_bar.set_position((i + 1) as u64 * chunk_size as u64);
         }
         drop(upload_tx);
         drop(upload_rx);
