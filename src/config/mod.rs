@@ -22,6 +22,7 @@ pub enum CompressionMthd {
     Deflate,
     Bzip2,
     Stored,
+    Zstd,
 }
 
 impl From<CompressionMthd> for zip::CompressionMethod {
@@ -30,6 +31,7 @@ impl From<CompressionMthd> for zip::CompressionMethod {
             CompressionMthd::Deflate => zip::CompressionMethod::Deflated,
             CompressionMthd::Bzip2 => zip::CompressionMethod::Bzip2,
             CompressionMthd::Stored => zip::CompressionMethod::Stored,
+            CompressionMthd::Zstd => zip::CompressionMethod::Zstd,
         }
     }
 }
@@ -40,6 +42,7 @@ impl From<String> for CompressionMthd {
             "deflate" => CompressionMthd::Deflate,
             "bzip2" => CompressionMthd::Bzip2,
             "stored" | "store" => CompressionMthd::Stored,
+            "zstd" => CompressionMthd::Zstd,
             _ => panic!("Invalid compression method: {}", mthd),
         }
     }
