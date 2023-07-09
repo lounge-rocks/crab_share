@@ -14,6 +14,36 @@ use std::path::PathBuf;
 
 use clap::Parser;
 use rusty_s3::Credentials;
+use serde::Deserialize;
+use zip::CompressionMethod;
+
+#[derive(Debug, Deserialize, Clone)]
+pub enum CompressionMthd {
+    Deflate,
+    Bzip2,
+    Stored,
+}
+
+impl From<CompressionMthd> for zip::CompressionMethod {
+    fn from(mthd: CompressionMthd) -> Self {
+        match mthd {
+            CompressionMthd::Deflate => zip::CompressionMethod::Deflated,
+            CompressionMthd::Bzip2 => zip::CompressionMethod::Bzip2,
+            CompressionMthd::Stored => zip::CompressionMethod::Stored,
+        }
+    }
+}
+
+impl From<String> for CompressionMthd {
+    fn from(mthd: String) -> Self {
+        match mthd.as_str() {
+            "deflate" => CompressionMthd::Deflate,
+            "bzip2" => CompressionMthd::Bzip2,
+            "stored" | "store" => CompressionMthd::Stored,
+            _ => panic!("Invalid compression method: {}", mthd),
+        }
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -29,6 +59,10 @@ pub struct Config {
     pub credentials: Credentials,
     /// Aws region (default: eu-central-1)
     pub region: String,
+    /// How to compress the zip file (default: deflate)
+    pub compression: CompressionMethod,
+    /// Whether to zip a single file
+    pub zip_single_file: bool,
 }
 
 /// Partial config: All possible config options, all optional. To be merged with other configs.
@@ -46,6 +80,10 @@ struct PartialConfig {
     region: Option<String>,
     /// Aws credentials
     credentials: Option<Credentials>,
+    /// How to compress the zip file (default: deflate)
+    compression: Option<CompressionMethod>,
+    /// Whether to zip a single file
+    zip_single_file: Option<bool>,
 }
 
 impl PartialConfig {
@@ -57,6 +95,8 @@ impl PartialConfig {
             path: self.path.or(other.path),
             region: self.region.or(other.region),
             credentials: self.credentials.or(other.credentials),
+            compression: self.compression.or(other.compression),
+            zip_single_file: self.zip_single_file.or(other.zip_single_file),
         }
     }
 
@@ -68,6 +108,8 @@ impl PartialConfig {
             path: None,
             region: Some("eu-central-1".to_string()),
             credentials: None,
+            compression: Some(CompressionMethod::Deflated),
+            zip_single_file: Some(false),
         }
     }
 }
@@ -147,6 +189,12 @@ impl Config {
             credentials: partial_config
                 .credentials
                 .ok_or_else(|| ConfigError::Missing("credentials".to_string()))?,
+            compression: partial_config
+                .compression
+                .expect("Compression should always be set by static default"),
+            zip_single_file: partial_config
+                .zip_single_file
+                .expect("zip_single_file should always be set by static default"),
         })
     }
 }

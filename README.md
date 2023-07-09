@@ -10,14 +10,16 @@ sharepy <file>
 
 Options:
 
-| Option           | Default      | Description                      |
-| ---------------- | -------      | -------------------------------- |
-| -e, --expires    | 7d           | The time until the link expires. |
-| -b, --bucket     |              | The bucket to upload to.         |
-| -u, --url        |              | The S3 url.                      |
-| -r, --region     | eu-central-1 | The S3 region.                   |
-| -a, --access-key |              | The S3 access key.               |
-| -s, --secret-key |              | The S3 secret key.               |
+| Option                | Default      | Description                       |
+| --------------------- | -------      | --------------------------------- |
+| -e, --expires         | 7d           | The time until the link expires.  |
+| -b, --bucket          |              | The bucket to upload to.          |
+| -u, --url             |              | The S3 url.                       |
+| -r, --region          | eu-central-1 | The S3 region.                    |
+| -a, --access-key      |              | The S3 access key.                |
+| -s, --secret-key      |              | The S3 secret key.                |
+| -c, --compression     | deflated     | The compression algorithm to use. |
+| -z, --zip-single-file | false        | Zip file before uploading.        |
 
 ## Setup
 
@@ -34,6 +36,8 @@ export S3_EXPIRES=
 export S3_BUCKET=
 export S3_PATH=
 export S3_REGION=
+export S3_COMPRESSION=
+export S3_ZIP_SINGLE_FILE=
 ```
 
 ### Token file
@@ -70,7 +74,9 @@ The file should have the following format:
     "bucket": "your-bucket-name",
     "region": "eu-central-1",
     "url": "https://s3.domain.com",
-    "expires": "7d"
+    "expires": "7d",
+    "compression": "deflated",
+    "zipSingleFile": false
 }
 ```
 

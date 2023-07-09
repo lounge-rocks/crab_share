@@ -63,12 +63,12 @@ async fn main() {
         .to_string_lossy();
 
     // 1.0. Check if file is a directory
-    let content = match config.path.is_dir() {
-        true => {
+    let content = match (config.path.is_dir(), config.zip_single_file) {
+        (true, _) => {
             println!("zipping directory...");
             let src_dir = config.path.to_string_lossy().to_string();
             file_name = (file_name.to_string() + ".zip").into();
-            match zip::zip_folder(&src_dir) {
+            match zip::zip_folder(&src_dir, config.compression) {
                 Ok(c) => c,
                 Err(e) => {
                     eprintln!("error zipping directory: {}", e);
@@ -76,7 +76,19 @@ async fn main() {
                 }
             }
         }
-        false => match fs::read(&config.path) {
+        (_, true) => {
+            println!("zipping file...");
+            let src_dir = config.path.to_string_lossy().to_string();
+            file_name = (file_name.to_string() + ".zip").into();
+            match zip::zip_file(&src_dir, config.compression) {
+                Ok(c) => c,
+                Err(e) => {
+                    eprintln!("error zipping file: {}", e);
+                    exit(1);
+                }
+            }
+        }
+        _ => match fs::read(&config.path) {
             Ok(c) => c,
             Err(e) => {
                 eprintln!("error reading file: {}", e);

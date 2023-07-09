@@ -1,4 +1,4 @@
-use super::PartialConfig;
+use super::{PartialConfig, CompressionMthd};
 
 use rusty_s3::Credentials;
 use std::{env, path::PathBuf};
@@ -18,6 +18,10 @@ pub(crate) struct EnvConf {
     path: Option<PathBuf>,
     /// The region to use (default: eu-central-1)
     region: Option<String>,
+    /// How to compress the zip file (default: deflate)
+    compression: Option<CompressionMthd>,
+    /// Whether to zip a single file
+    zip_single_file: Option<bool>,
 }
 
 impl TryInto<Credentials> for EnvConf {
@@ -47,6 +51,8 @@ impl From<EnvConf> for PartialConfig {
             bucket: json_credentials.bucket,
             path: json_credentials.path,
             region: json_credentials.region,
+            compression: json_credentials.compression.map(|c| c.into()),
+            zip_single_file: json_credentials.zip_single_file,
         }
     }
 }
@@ -61,6 +67,9 @@ impl EnvConf {
         let bucket = env::var("S3_BUCKET").ok();
         let path = env::var("S3_PATH").ok().map(PathBuf::from);
         let region = env::var("S3_REGION").ok();
+
+        let compression = env::var("S3_COMPRESSION").ok().map(|c| c.into());
+        let zip_single_file = env::var("S3_ZIP_SINGLE_FILE").ok().map(|c| c.parse().unwrap());
         EnvConf {
             url,
             access_key,
@@ -69,6 +78,8 @@ impl EnvConf {
             bucket,
             path,
             region,
+            compression,
+            zip_single_file,
         }
     }
 }

@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use clap::Parser;
 use rusty_s3::Credentials;
 
-use super::PartialConfig;
+use super::{PartialConfig, CompressionMthd};
 
 #[derive(Parser, Debug)]
 #[command(author, version)]
@@ -36,6 +36,14 @@ pub(crate) struct Args {
     #[arg(short = 't', long)]
     session_token: Option<String>,
 
+    /// How to compress into zip file (default: deflate)
+    #[arg(short, long)]
+    compression: Option<CompressionMthd>,
+
+    /// Whether to zip a single file
+    #[arg(short, long)]
+    zip_single_file: bool,
+
     /// Path to upload. If it is a directory, it will be zipped.
     #[arg()]
     path: PathBuf,
@@ -47,6 +55,11 @@ impl From<Args> for PartialConfig {
             (Some(access_key), Some(secret_key)) => Some(Credentials::new(access_key, secret_key)),
             _ => None,
         };
+        let zip_single_file = if args.zip_single_file {
+            Some(true)
+        } else {
+            None
+        };
         PartialConfig {
             expires: args.expires,
             bucket: args.bucket,
@@ -54,6 +67,8 @@ impl From<Args> for PartialConfig {
             path: Some(args.path),
             region: args.region,
             credentials,
+            compression: args.compression.map(|mthd| mthd.into()),
+            zip_single_file,
         }
     }
 }

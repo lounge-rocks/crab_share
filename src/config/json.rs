@@ -3,7 +3,7 @@ use std::{env, fs, path::Path};
 use rusty_s3::Credentials;
 use serde::Deserialize;
 
-use super::{error::ConfigError, PartialConfig};
+use super::{error::ConfigError, PartialConfig, CompressionMthd};
 
 #[derive(Deserialize, Debug, Clone, Default)]
 pub(crate) struct JSONCredentials {
@@ -59,6 +59,9 @@ pub(crate) struct JSONConfig {
     region: Option<String>,
     url: Option<String>,
     expires: Option<String>,
+    compression: Option<CompressionMthd>,
+    #[serde(rename = "zipSingleFile")]
+    zip_single_file: Option<bool>,
 }
 
 impl From<JSONConfig> for PartialConfig {
@@ -70,6 +73,8 @@ impl From<JSONConfig> for PartialConfig {
             path: None,
             credentials: None,
             expires: json_config.expires,
+            compression: json_config.compression.map(|c| c.into()),
+            zip_single_file: json_config.zip_single_file,
         }
     }
 }
