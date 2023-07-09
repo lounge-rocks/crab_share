@@ -1,15 +1,16 @@
 use bytesize::ByteSize;
-use config::Config;
 use std::{fs, process::exit, time::Duration};
 
-use reqwest::header::ETAG;
 use reqwest::Client;
 use rusty_s3::actions::{
-    CompleteMultipartUpload, CreateMultipartUpload, GetObject, PutObject, S3Action, UploadPart,
+    CompleteMultipartUpload, CreateMultipartUpload, GetObject, PutObject, S3Action,
 };
 use rusty_s3::{Bucket, UrlStyle};
 
+use crate::upload_actor::spawn_upload_actor;
+
 mod config;
+mod upload_actor;
 mod zip;
 
 const ONE_HOUR: Duration = Duration::from_secs(3600);
@@ -19,16 +20,18 @@ async fn main() {
     let config = match config::Config::parse() {
         Ok(c) => c,
         Err(e) => {
-            println!("{}", e);
+            eprintln!("{}", e);
             exit(1);
         }
     };
+    let chunk_size = 16 * 1024 * 1024;
+    let num_threads = 8;
 
     // connect to s3
     let url = match config.url.parse() {
         Ok(u) => u,
         Err(e) => {
-            println!("error parsing url: {}", e);
+            eprintln!("error parsing url: {}", e);
             exit(1);
         }
     };
@@ -41,7 +44,7 @@ async fn main() {
     ) {
         Ok(b) => b,
         Err(e) => {
-            println!("error creating bucket: {}", e);
+            eprintln!("error creating bucket: {}", e);
             exit(1);
         }
     };
@@ -67,7 +70,7 @@ async fn main() {
             match zip::zip_folder(&src_dir) {
                 Ok(c) => c,
                 Err(e) => {
-                    println!("error zipping directory: {}", e);
+                    eprintln!("error zipping directory: {}", e);
                     exit(1);
                 }
             }
@@ -75,7 +78,7 @@ async fn main() {
         false => match fs::read(&config.path) {
             Ok(c) => c,
             Err(e) => {
-                println!("error reading file: {}", e);
+                eprintln!("error reading file: {}", e);
                 exit(1);
             }
         },
@@ -91,8 +94,7 @@ async fn main() {
         path
     );
     if content.len() > 100 * 1024 * 1024 {
-        println!("file too large (> 5MB), uploading with multipart upload");
-        let now = std::time::Instant::now();
+        println!("file too large for simple PUT(> 100MB), uploading with multipart upload");
         let action = CreateMultipartUpload::new(&bucket, Some(&config.credentials), &path);
 
         let url = action.sign(ONE_HOUR);
@@ -101,14 +103,14 @@ async fn main() {
         let resp = match resp.send().await {
             Ok(r) => r,
             Err(e) => {
-                println!("error creating multipart upload: {}", e);
+                eprintln!("error creating multipart upload: {}", e);
                 exit(1);
             }
         };
         let resp = match resp.error_for_status() {
             Ok(resp) => resp,
             Err(e) => {
-                println!("error creating multipart upload: {}", e);
+                eprintln!("error creating multipart upload: {}", e);
                 exit(1);
             }
         };
@@ -116,7 +118,7 @@ async fn main() {
         let body = match resp.text().await {
             Ok(b) => b,
             Err(e) => {
-                println!("error creating multipart upload: {}", e);
+                eprintln!("error creating multipart upload: {}", e);
                 exit(1);
             }
         };
@@ -124,37 +126,54 @@ async fn main() {
         let upload = match CreateMultipartUpload::parse_response(&body) {
             Ok(u) => u,
             Err(e) => {
-                println!("error creating multipart upload: {}", e);
+                eprintln!("error creating multipart upload: {}", e);
                 exit(1);
             }
         };
-        println!(
-            "initiated multipart upload in {}ms",
-            now.elapsed().as_millis()
-        );
+
+        let (upload_tx, upload_rx) = flume::bounded(8);
+        let (etag_tx, etag_rx) = flume::unbounded();
+        let runners = (0..num_threads)
+            .map(|_| {
+                let client = client.clone();
+                let bucket = bucket.clone();
+                let config = config.clone();
+                let path = path.clone();
+                let upload = upload.clone();
+                spawn_upload_actor(
+                    config,
+                    bucket,
+                    path,
+                    client,
+                    upload.upload_id().to_string(),
+                    upload_rx.clone(),
+                    etag_tx.clone(),
+                )
+            })
+            .collect::<Vec<_>>();
         let now = std::time::Instant::now();
         let mut parts = Vec::new();
-        for (i, chunk) in content.chunks(100 * 1024 * 1024).enumerate() {
-            let etag = upload_part(
-                &bucket,
-                &config,
-                &path,
-                i as u16,
-                upload.upload_id(),
-                &client,
-                chunk,
-            )
-            .await;
-            parts.push(etag);
+        for (i, chunk) in content.chunks(chunk_size).enumerate() {
+            upload_tx.send((i as u16, chunk.to_vec())).unwrap();
         }
+        drop(upload_tx);
+        drop(upload_rx);
+        drop(etag_tx);
+        for runner in runners {
+            runner.await.unwrap();
+        }
+        while let Ok((i, etag)) = etag_rx.recv() {
+            parts.push((i, etag));
+        }
+        drop(etag_rx);
+
+        parts.sort_by_key(|p| p.0);
+
         println!(
-            "uploaded {} chunks in {}ms",
+            "uploaded {} chunks in {:?} ({}/s)",
             parts.len(),
-            now.elapsed().as_millis()
-        );
-        println!(
-            "That is a speed of {}/s",
-            ByteSize(content.len() as u64 / now.elapsed().as_secs())
+            now.elapsed(),
+            ByteSize((content.len() as f64 / now.elapsed().as_secs_f64()) as u64)
         );
 
         let action = CompleteMultipartUpload::new(
@@ -162,21 +181,21 @@ async fn main() {
             Some(&config.credentials),
             &path,
             upload.upload_id(),
-            parts.iter().map(|p| p.as_str()),
+            parts.iter().map(|p| p.1.as_str()),
         );
         let url = action.sign(ONE_HOUR);
 
         let resp = match client.post(url).body(action.body()).send().await {
             Ok(r) => r,
             Err(e) => {
-                println!("error completing multipart upload: {}", e);
+                eprintln!("error completing multipart upload: {}", e);
                 exit(1);
             }
         };
         match resp.error_for_status() {
             Ok(_) => {}
             Err(e) => {
-                println!("error completing multipart upload: {}", e);
+                eprintln!("error completing multipart upload: {}", e);
                 exit(1);
             }
         }
@@ -189,21 +208,21 @@ async fn main() {
         let resp = match client.put(url).body(content).send().await {
             Ok(r) => r,
             Err(e) => {
-                println!("error uploading file: {}", e);
+                eprintln!("error uploading file: {}", e);
                 exit(1);
             }
         };
         match resp.error_for_status() {
             Ok(_) => {}
             Err(e) => {
-                println!("error uploading file: {}", e);
+                eprintln!("error uploading file: {}", e);
                 exit(1);
             }
         }
-        println!("uploaded file in {}ms", now.elapsed().as_millis());
         println!(
-            "That is a speed of {}/s",
-            ByteSize(content_len as u64 / now.elapsed().as_secs())
+            "uploaded file in {:?} ({}/s)",
+            now.elapsed(),
+            ByteSize((content_len as f64 / now.elapsed().as_secs_f64()) as u64)
         );
     }
 
@@ -219,51 +238,4 @@ async fn main() {
 
     // 2.2. Print url
     println!("\n{}", url);
-}
-
-async fn upload_part(
-    bucket: &Bucket,
-    config: &Config,
-    path: &str,
-    i: u16,
-    upload_id: &str,
-    client: &Client,
-    chunk: &[u8],
-) -> String {
-    // println!(
-    //     "uploading chunk {i}/{n}",
-    //     i = i,
-    //     n = content.len() / 100 / 1024 / 1024
-    // );
-    let action = UploadPart::new(bucket, Some(&config.credentials), path, i + 1, upload_id);
-    let url = action.sign(ONE_HOUR);
-    let resp = match client.put(url).body(chunk.to_vec()).send().await {
-        Ok(r) => r,
-        Err(e) => {
-            println!("error uploading chunk: {}", e);
-            exit(1);
-        }
-    };
-    let resp = match resp.error_for_status() {
-        Ok(resp) => resp,
-        Err(e) => {
-            println!("error uploading chunk: {}", e);
-            exit(1);
-        }
-    };
-    let etag = match resp.headers().get(ETAG) {
-        Some(e) => e,
-        None => {
-            println!("error uploading chunk: no etag in response");
-            exit(1);
-        }
-    };
-    let etag = match etag.to_str() {
-        Ok(e) => e,
-        Err(e) => {
-            println!("error uploading chunk: {}", e);
-            exit(1);
-        }
-    };
-    etag.to_string()
 }

@@ -15,6 +15,7 @@ use std::path::PathBuf;
 use clap::Parser;
 use rusty_s3::Credentials;
 
+#[derive(Debug, Clone)]
 pub struct Config {
     /// How long the link should be valid for in seconds (default: 7d)
     pub expires: u32,
