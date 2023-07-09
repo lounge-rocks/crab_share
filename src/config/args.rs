@@ -32,10 +32,6 @@ pub(crate) struct Args {
     #[arg(short, long)]
     secret_key: Option<String>,
 
-    /// S3 session token
-    #[arg(short = 't', long)]
-    session_token: Option<String>,
-
     /// How to compress into zip file (default: deflate)
     #[arg(short, long)]
     compression: Option<CompressionMthd>,
