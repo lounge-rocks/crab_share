@@ -111,7 +111,7 @@ impl PartialConfig {
             path: None,
             region: Some("eu-central-1".to_string()),
             credentials: None,
-            compression: Some(CompressionMethod::Deflated),
+            compression: Some(CompressionMethod::Zstd),
             zip_single_file: Some(false),
         }
     }

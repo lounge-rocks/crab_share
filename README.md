@@ -18,7 +18,7 @@ Options:
 | -r, --region          | eu-central-1 | The S3 region.                    |
 | -a, --access-key      |              | The S3 access key.                |
 | -s, --secret-key      |              | The S3 secret key.                |
-| -c, --compression     | deflated     | The compression algorithm to use. |
+| -c, --compression     | zstd         | The compression algorithm to use. |
 | -z, --zip-single-file | false        | Zip file before uploading.        |
 
 ## Setup
@@ -75,7 +75,7 @@ The file should have the following format:
     "region": "eu-central-1",
     "url": "https://s3.domain.com",
     "expires": "7d",
-    "compression": "deflated",
+    "compression": "zstd",
     "zipSingleFile": false
 }
 ```
