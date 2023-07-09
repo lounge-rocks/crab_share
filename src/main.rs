@@ -176,8 +176,6 @@ async fn main() {
         let mut parts = Vec::new();
         for (i, chunk) in content.chunks(chunk_size).enumerate() {
             upload_tx.send((i as u16, chunk.to_vec())).unwrap();
-            // sleep for 1ms to avoid spamming the server
-            std::thread::sleep(std::time::Duration::from_secs(1));
             progress_bar.set_position((i + 1) as u64 * chunk_size as u64);
         }
         drop(upload_tx);
