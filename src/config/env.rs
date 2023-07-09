@@ -22,6 +22,8 @@ pub(crate) struct EnvConf {
     compression: Option<CompressionMthd>,
     /// Whether to zip a single file
     zip_single_file: Option<bool>,
+    /// Whether to purge expired files before uploading
+    purge: Option<bool>,
 }
 
 impl TryInto<Credentials> for EnvConf {
@@ -53,6 +55,7 @@ impl From<EnvConf> for PartialConfig {
             region: json_credentials.region,
             compression: json_credentials.compression.map(|c| c.into()),
             zip_single_file: json_credentials.zip_single_file,
+            purge: json_credentials.purge,
         }
     }
 }
@@ -69,9 +72,8 @@ impl EnvConf {
         let region = env::var("S3_REGION").ok();
 
         let compression = env::var("S3_COMPRESSION").ok().map(|c| c.into());
-        let zip_single_file = env::var("S3_ZIP_SINGLE_FILE")
-            .ok()
-            .map(|c| c.parse().unwrap());
+        let zip_single_file = env::var("S3_ZIP_SINGLE_FILE").ok().map(|_| true);
+        let purge = env::var("S3_PURGE").ok().map(|_| true);
         EnvConf {
             url,
             access_key,
@@ -82,6 +84,7 @@ impl EnvConf {
             region,
             compression,
             zip_single_file,
+            purge,
         }
     }
 }

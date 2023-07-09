@@ -1,5 +1,6 @@
 use bytesize::ByteSize;
 use indicatif::{ProgressBar, ProgressStyle};
+use rulid::{encode_random, encode_time};
 use std::{fs, process::exit, time::Duration};
 
 use reqwest::Client;
@@ -13,6 +14,7 @@ use crate::upload_actor::spawn_upload_actor;
 mod config;
 mod upload_actor;
 mod zip;
+mod purge;
 
 const ONE_HOUR: Duration = Duration::from_secs(3600);
 
@@ -49,6 +51,10 @@ async fn main() {
             exit(1);
         }
     };
+
+    if config.purge {
+        purge::purge(&config, &bucket).await;
+    }
 
     // 1. Upload a file to the bucket.
     // <uuid>/filename
@@ -99,11 +105,23 @@ async fn main() {
 
     // 1.1. Read file
     // 1.2. Create path
-    let path = uuid::Uuid::new_v4().to_string() + "/" + file_name.as_ref();
+    let ulid = {
+        let expiry = std::time::SystemTime::now() + Duration::from_secs(config.expires.into());
+        // get milliseconds since unix epoch
+        let expiry: u64 = expiry
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("expiry should be in the future")
+            .as_millis() as u64;
+        let enct = encode_time(expiry);
+        String::new() + &enct[enct.len() - 10..] + encode_random().as_str()
+    };
+    let path = ulid + "/" + file_name.as_ref();
     // 1.3. Upload file to bucket
     println!(
-        "uploading file with size {} bytes to {} ...",
+        "uploading file with size {} bytes to {}/{}/{} ...",
         ByteSize(content.len() as u64),
+        config.url,
+        config.bucket,
         path
     );
     if content.len() > 100 * 1024 * 1024 {
@@ -172,7 +190,6 @@ async fn main() {
                 )
             })
             .collect::<Vec<_>>();
-        let now = std::time::Instant::now();
         let mut parts = Vec::new();
         for (i, chunk) in content.chunks(chunk_size).enumerate() {
             upload_tx.send((i as u16, chunk.to_vec())).unwrap();
@@ -190,13 +207,6 @@ async fn main() {
         drop(etag_rx);
 
         parts.sort_by_key(|p| p.0);
-
-        println!(
-            "uploaded {} chunks in {:?} ({}/s)",
-            parts.len(),
-            now.elapsed(),
-            ByteSize((content.len() as f64 / now.elapsed().as_secs_f64()) as u64)
-        );
 
         let action = CompleteMultipartUpload::new(
             &bucket,

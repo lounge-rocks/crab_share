@@ -66,6 +66,8 @@ pub struct Config {
     pub compression: CompressionMethod,
     /// Whether to zip a single file
     pub zip_single_file: bool,
+    /// Whether to purge expired files before uploading
+    pub purge: bool,
 }
 
 /// Partial config: All possible config options, all optional. To be merged with other configs.
@@ -87,6 +89,8 @@ struct PartialConfig {
     compression: Option<CompressionMethod>,
     /// Whether to zip a single file
     zip_single_file: Option<bool>,
+    /// Whether to purge expired files before uploading
+    purge: Option<bool>,
 }
 
 impl PartialConfig {
@@ -100,6 +104,7 @@ impl PartialConfig {
             credentials: self.credentials.or(other.credentials),
             compression: self.compression.or(other.compression),
             zip_single_file: self.zip_single_file.or(other.zip_single_file),
+            purge: self.purge.or(other.purge),
         }
     }
 
@@ -113,6 +118,7 @@ impl PartialConfig {
             credentials: None,
             compression: Some(CompressionMethod::Zstd),
             zip_single_file: Some(false),
+            purge: Some(false),
         }
     }
 }
@@ -198,6 +204,9 @@ impl Config {
             zip_single_file: partial_config
                 .zip_single_file
                 .expect("zip_single_file should always be set by static default"),
+            purge: partial_config
+                .purge
+                .expect("purge should always be set by static default"),
         })
     }
 }

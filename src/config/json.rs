@@ -62,6 +62,7 @@ pub(crate) struct JSONConfig {
     compression: Option<CompressionMthd>,
     #[serde(rename = "zipSingleFile")]
     zip_single_file: Option<bool>,
+    purge: Option<bool>,
 }
 
 impl From<JSONConfig> for PartialConfig {
@@ -75,6 +76,7 @@ impl From<JSONConfig> for PartialConfig {
             expires: json_config.expires,
             compression: json_config.compression.map(|c| c.into()),
             zip_single_file: json_config.zip_single_file,
+            purge: json_config.purge,
         }
     }
 }

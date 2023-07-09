@@ -40,6 +40,10 @@ pub(crate) struct Args {
     #[arg(short, long)]
     zip_single_file: bool,
 
+    /// Whether to purge expired files before uploading
+    #[arg(short, long)]
+    purge: bool,
+
     /// Path to upload. If it is a directory, it will be zipped.
     #[arg()]
     path: PathBuf,
@@ -56,6 +60,7 @@ impl From<Args> for PartialConfig {
         } else {
             None
         };
+        let purge = if args.purge { Some(true) } else { None };
         PartialConfig {
             expires: args.expires,
             bucket: args.bucket,
@@ -65,6 +70,7 @@ impl From<Args> for PartialConfig {
             credentials,
             compression: args.compression.map(|mthd| mthd.into()),
             zip_single_file,
+            purge,
         }
     }
 }
