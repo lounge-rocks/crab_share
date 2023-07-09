@@ -1,4 +1,4 @@
-use super::{PartialConfig, CompressionMthd};
+use super::{CompressionMthd, PartialConfig};
 
 use rusty_s3::Credentials;
 use std::{env, path::PathBuf};
@@ -69,7 +69,9 @@ impl EnvConf {
         let region = env::var("S3_REGION").ok();
 
         let compression = env::var("S3_COMPRESSION").ok().map(|c| c.into());
-        let zip_single_file = env::var("S3_ZIP_SINGLE_FILE").ok().map(|c| c.parse().unwrap());
+        let zip_single_file = env::var("S3_ZIP_SINGLE_FILE")
+            .ok()
+            .map(|c| c.parse().unwrap());
         EnvConf {
             url,
             access_key,

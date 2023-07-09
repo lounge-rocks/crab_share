@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use clap::Parser;
 use rusty_s3::Credentials;
 
-use super::{PartialConfig, CompressionMthd};
+use super::{CompressionMthd, PartialConfig};
 
 #[derive(Parser, Debug)]
 #[command(author, version)]

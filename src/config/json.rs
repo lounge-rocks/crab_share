@@ -3,7 +3,7 @@ use std::{env, fs, path::Path};
 use rusty_s3::Credentials;
 use serde::Deserialize;
 
-use super::{error::ConfigError, PartialConfig, CompressionMthd};
+use super::{error::ConfigError, CompressionMthd, PartialConfig};
 
 #[derive(Deserialize, Debug, Clone, Default)]
 pub(crate) struct JSONCredentials {

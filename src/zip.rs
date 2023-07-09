@@ -48,7 +48,10 @@ pub(crate) fn zip_folder(
         &progress_bar,
     )?;
     let inner = res.into_inner();
-    println!("Compression ratio: {}", inner.len() as f64 / dir_size as f64);
+    println!(
+        "Compression ratio: {}",
+        inner.len() as f64 / dir_size as f64
+    );
     Ok(inner)
 }
 
@@ -157,6 +160,9 @@ pub fn zip_file(src_file: &str, cmp_mthd: CompressionMethod) -> zip::result::Zip
 
     let zip = zip.finish()?;
     let inner = zip.into_inner();
-    println!("Compression ratio: {}", inner.len() as f64 / file_size as f64);
+    println!(
+        "Compression ratio: {}",
+        inner.len() as f64 / file_size as f64
+    );
     Ok(inner)
 }
