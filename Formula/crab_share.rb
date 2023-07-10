@@ -2,7 +2,7 @@ class CrabShare < Formula
   desc "Simple application to upload files to an S3 bucket and receive a shareable link"
   homepage "https://github.com/lounge-rocks/crab_share"
 
-  url "https://github.com/lounge-rocks/crab_share/archive/refs/tags/0.1.1.tar.gz"
+  url "https://github.com/lounge-rocks/crab_share/archive/refs/tags/0.2.0.tar.gz"
   sha256 "96af8c5d3b899bdf0bb8acf47a9de6f8f40f61d960f423c035d0a0ba5b2de3fe"
 
   head do
