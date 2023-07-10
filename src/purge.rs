@@ -87,18 +87,8 @@ pub async fn purge(config: &crate::config::Config, bucket: &Bucket) {
             let mut parts = k.split('/');
             // first part is the uuid
             let ulid = parts.next().unwrap();
-            let raw_ulid = rulid::as_vec(ulid).unwrap();
-            // extract the first 6 bytes as u64
-            let expiry_timestamp = u64::from_be_bytes([
-                0,
-                0,
-                raw_ulid[0],
-                raw_ulid[1],
-                raw_ulid[2],
-                raw_ulid[3],
-                raw_ulid[4],
-                raw_ulid[5],
-            ]);
+            let ulid = ulid.parse::<ulid::Ulid>().unwrap();
+            let expiry_timestamp = ulid.timestamp_ms();
             (k, expiry_timestamp)
         })
         .collect();

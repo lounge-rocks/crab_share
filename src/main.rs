@@ -1,6 +1,5 @@
 use bytesize::ByteSize;
 use indicatif::{ProgressBar, ProgressStyle};
-use rulid::{encode_random, encode_time};
 use std::{fs, process::exit, time::Duration};
 
 use reqwest::Client;
@@ -107,13 +106,7 @@ async fn main() {
     // 1.2. Create path
     let ulid = {
         let expiry = std::time::SystemTime::now() + Duration::from_secs(config.expires.into());
-        // get milliseconds since unix epoch
-        let expiry: u64 = expiry
-            .duration_since(std::time::UNIX_EPOCH)
-            .expect("expiry should be in the future")
-            .as_millis() as u64;
-        let enct = encode_time(expiry);
-        String::new() + &enct[enct.len() - 10..] + encode_random().as_str()
+        ulid::Ulid::from_datetime(expiry).to_string()
     };
     let path = ulid + "/" + file_name.as_ref();
     // 1.3. Upload file to bucket
