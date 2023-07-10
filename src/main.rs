@@ -12,9 +12,9 @@ use rusty_s3::{Bucket, UrlStyle};
 use crate::upload_actor::spawn_upload_actor;
 
 mod config;
+mod purge;
 mod upload_actor;
 mod zip;
-mod purge;
 
 const ONE_HOUR: Duration = Duration::from_secs(3600);
 
