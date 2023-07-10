@@ -83,13 +83,19 @@ pub async fn purge(config: &crate::config::Config, bucket: &Bucket) {
         .into_iter()
         .map(|f| f.key)
         // decode the timestamp from the uuid
-        .map(|k| {
+        .flat_map(|k| {
             let mut parts = k.split('/');
             // first part is the uuid
-            let ulid = parts.next().unwrap();
-            let ulid = ulid.parse::<ulid::Ulid>().unwrap();
+            let ulid = match parts.next() {
+                Some(ulid) => ulid,
+                None => return None,
+            };
+            let ulid = match ulid.parse::<ulid::Ulid>() {
+                Ok(ulid) => ulid,
+                Err(_) => return None,
+            };
             let expiry_timestamp = ulid.timestamp_ms();
-            (k, expiry_timestamp)
+            Some((k, expiry_timestamp))
         })
         .collect();
     let now = std::time::SystemTime::now()
