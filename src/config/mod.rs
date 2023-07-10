@@ -19,9 +19,13 @@ use zip::CompressionMethod;
 
 #[derive(Debug, Deserialize, Clone)]
 pub enum CompressionMthd {
+    #[serde(rename = "deflate")]
     Deflate,
+    #[serde(rename = "bzip2")]
     Bzip2,
+    #[serde(rename = "stored")]
     Stored,
+    #[serde(rename = "zstd")]
     Zstd,
 }
 
