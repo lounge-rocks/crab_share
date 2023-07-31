@@ -141,7 +141,7 @@ impl Config {
             partial_config.merge(PartialConfig::from(json_config))
         } else {
             println!(
-                "Could not read ~/.aws/crab_share.json: {}",
+                "Warn: Could not read ~/.aws/crab_share.json: {}",
                 json_config.unwrap_err()
             );
             partial_config
@@ -153,7 +153,7 @@ impl Config {
             partial_config.merge(partial_config_creds)
         } else {
             println!(
-                "Could not read ~/.aws/credentials.json: {}",
+                "Warn: Could not read ~/.aws/credentials.json: {}",
                 partial_config_creds.unwrap_err()
             );
             partial_config
