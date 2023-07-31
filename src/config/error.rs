@@ -15,9 +15,9 @@ pub enum ConfigError {
 impl Display for ConfigError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            ConfigError::Io(e) => write!(f, "IO Error: {}", e),
-            ConfigError::Parse(e) => write!(f, "{}", e),
-            ConfigError::Missing(e) => write!(f, "Missing config option: {}", e),
+            ConfigError::Io(e) => write!(f, "Error: {}", e),
+            ConfigError::Parse(e) => write!(f, "Error: {}", e),
+            ConfigError::Missing(e) => write!(f, "Error: Missing config option: {}", e),
             // ConfigError::Credentials(e) => write!(f, "Credentials Error: {}", e),
         }
     }
