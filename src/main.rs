@@ -259,7 +259,7 @@ async fn main() {
     action
         .query_mut()
         .insert("response-cache-control", "no-cache, no-store");
-    let url = action.sign(ONE_HOUR);
+    let url = action.sign(Duration::from_secs(config.expires.into()));
 
     // 2.2. Print url
     println!("\n{}", url);
