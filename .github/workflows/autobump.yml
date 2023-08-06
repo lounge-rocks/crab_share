@@ -1,0 +1,54 @@
+name: Bump casks on tag push
+
+on:
+  push:
+    tags:
+      - "*"
+
+permissions:
+  contents: write
+
+jobs:
+  autobump:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.ref_name }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get tag name
+        id: get_tag_name
+        run: echo ::set-output name=tag_name::${GITHUB_REF#refs/tags/}
+
+      - name: Get sha256 of latest release
+        id: get_sha256
+        run: |
+          echo ::set-output name=sha256::$(curl -sL https://github.com/lounge-rocks/crab_share/archive/refs/tags/${{ steps.get_tag_name.outputs.tag_name }}.tar.gz | shasum -a 256 | cut -d ' ' -f 1)
+
+      - name: Print information
+        run: |
+          echo "Tag name: ${{ steps.get_tag_name.outputs.tag_name }}"
+          echo "SHA256: ${{ steps.get_sha256.outputs.sha256 }}"
+      
+      - name: Switch to main branch
+        run: |
+          git fetch origin main
+          git checkout main
+      
+      - name: Bump version in Formula/crab_share.rb
+        run: |
+          sed -i 's|\(github\.com/lounge-rocks/crab_share/archive/refs/tags/\).*\.tar\.gz|\1${{ steps.get_tag_name.outputs.tag_name }}.tar.gz|' Formula/crab_share.rb
+
+      - name: Bump sha256 in Formula/crab_share.rb
+        run: |
+          sed -i "s/sha256 \"[^\"]*\"/sha256 \"${{ steps.get_sha256.outputs.sha256 }}\"/" Formula/crab_share.rb
+
+      - name: Commit changes to git
+        run: |
+          git config --local user.email "info@niklas-steffen.de"
+          git config --local user.name "MayNiklas"
+          git add Formula/crab_share.rb
+          git commit -m "Bump Formula to ${{ steps.get_tag_name.outputs.tag_name }}"
+          git push
