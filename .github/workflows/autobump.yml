@@ -31,12 +31,12 @@ jobs:
         run: |
           echo "Tag name: ${{ steps.get_tag_name.outputs.tag_name }}"
           echo "SHA256: ${{ steps.get_sha256.outputs.sha256 }}"
-      
+
       - name: Switch to main branch
         run: |
           git fetch origin main
           git checkout main
-      
+
       - name: Bump version in Formula/crab_share.rb
         run: |
           sed -i 's|\(github\.com/lounge-rocks/crab_share/archive/refs/tags/\).*\.tar\.gz|\1${{ steps.get_tag_name.outputs.tag_name }}.tar.gz|' Formula/crab_share.rb
@@ -47,8 +47,8 @@ jobs:
 
       - name: Commit changes to git
         run: |
-          git config --local user.email "info@niklas-steffen.de"
-          git config --local user.name "MayNiklas"
+          git config user.name github-actions
+          git config user.email github-actions@github.com
           git add Formula/crab_share.rb
           git commit -m "Bump Formula to ${{ steps.get_tag_name.outputs.tag_name }}"
           git push
