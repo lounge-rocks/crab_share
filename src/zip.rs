@@ -82,6 +82,12 @@ where
         if path.is_file() {
             // println!("adding file {path:?} as {name:?} ...");
             progress_bar.println(format!("adding file {path:?} as {name:?} ...",));
+            // check, if file is larger than 4GB, if so, set large_file flag
+            let options = if path.metadata().unwrap().len() >= 2u64.pow(32) {
+                options.large_file(true)
+            } else {
+                options
+            };
             #[allow(deprecated)]
             zip.start_file_from_path(name, options)?;
             let mut f = File::open(path)?;
