@@ -134,9 +134,12 @@ pub fn zip_file(src_file: &str, cmp_mthd: CompressionMethod) -> zip::result::Zip
         .progress_chars("#>-"));
 
     let mut zip = zip::ZipWriter::new(writer);
-    let options = FileOptions::default()
+    let mut options = FileOptions::default()
         .compression_method(cmp_mthd)
         .unix_permissions(0o755);
+    if file_size >= 2u64.pow(32) {
+        options = options.large_file(true);
+    }
 
     let mut buffer = Vec::new();
     let path = Path::new("/").join(src_file.file_name().unwrap());
