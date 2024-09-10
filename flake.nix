@@ -16,24 +16,25 @@
     in
     {
 
-      formatter = forAllSystems
-        (system: nixpkgsFor.${system}.nixpkgs-fmt);
+      formatter = forAllSystems (system: nixpkgsFor.${system}.nixpkgs-fmt);
 
-      overlay = final: prev: {
+      overlay = final: prev:
+        let
+          pkgs = nixpkgsFor.${prev.system};
+          inherit (pkgs) lib;
+        in
+        {
+          crab_share = let manifest = (lib.importTOML ./Cargo.toml).package; in
+            pkgs.rustPlatform.buildRustPackage {
+              pname = manifest.name;
+              version = manifest.version;
+              src = lib.cleanSource self;
+              cargoLock = { lockFile = ./Cargo.lock; };
+              nativeBuildInputs = with pkgs; lib.optionals stdenv.isLinux [ pkg-config ];
+              buildInputs = with pkgs; [ openssl ]; # TODO: check how to make this work on darwin?
+            };
 
-        crab_share = with final;
-          let manifest = (pkgs.lib.importTOML ./Cargo.toml).package; in
-          pkgs.rustPlatform.buildRustPackage {
-            pname = manifest.name;
-            version = manifest.version;
-            src = lib.cleanSource self;
-            cargoLock = { lockFile = ./Cargo.lock; };
-            nativeBuildInputs = with pkgs;
-              lib.optionals stdenv.isLinux [ pkg-config ];
-            buildInputs = with pkgs; [ openssl ]; # TODO: check how to make this work on darwin?
-          };
-
-      };
+        };
 
       devShells = forAllSystems (system:
         let pkgs = nixpkgsFor.${system}; in {
