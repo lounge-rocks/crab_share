@@ -30,8 +30,14 @@
               version = manifest.version;
               src = lib.cleanSource self;
               cargoLock = { lockFile = ./Cargo.lock; };
-              nativeBuildInputs = with pkgs; lib.optionals stdenv.isLinux [ pkg-config ];
+              nativeBuildInputs = with pkgs; lib.optionals stdenv.isLinux [ pkg-config installShellFiles ];
               buildInputs = with pkgs; [ openssl ]; # TODO: check how to make this work on darwin?
+              postInstall = ''
+                installShellCompletion --cmd crab_share \
+                  --bash <($out/bin/crab_share --generate-completion bash) \
+                  --fish <($out/bin/crab_share --generate-completion fish) \
+                  --zsh <($out/bin/crab_share --generate-completion zsh)
+              '';
             };
 
         };
