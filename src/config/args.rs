@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use clap::{Parser, CommandFactory};
+use clap::{CommandFactory, Parser};
 use clap_complete::Shell;
 use rusty_s3::Credentials;
 
