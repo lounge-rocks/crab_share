@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
-use clap::Parser;
+use clap::{CommandFactory, Parser};
+use clap_complete::Shell;
 use rusty_s3::Credentials;
 
 use super::{CompressionMthd, PartialConfig};
@@ -44,9 +45,24 @@ pub(crate) struct Args {
     #[arg(short, long)]
     purge: bool,
 
+    /// Generate shell completion script for the specified shell
+    #[arg(long, value_name = "SHELL")]
+    generate_completion: Option<Shell>,
+
     /// Path to upload. If it is a directory, it will be zipped.
     #[arg()]
-    path: PathBuf,
+    path: Option<PathBuf>,
+}
+
+impl Args {
+    pub fn generate_completion_if_requested(&self) {
+        if let Some(shell) = self.generate_completion {
+            let mut cmd = Args::command();
+            let bin_name = cmd.get_name().to_string();
+            clap_complete::generate(shell, &mut cmd, bin_name, &mut std::io::stdout());
+            std::process::exit(0);
+        }
+    }
 }
 
 impl From<Args> for PartialConfig {
@@ -65,7 +81,7 @@ impl From<Args> for PartialConfig {
             expires: args.expires,
             bucket: args.bucket,
             url: args.url,
-            path: Some(args.path),
+            path: args.path,
             region: args.region,
             credentials,
             compression: args.compression.map(|mthd| mthd.into()),

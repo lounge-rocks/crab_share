@@ -130,6 +130,10 @@ impl PartialConfig {
 impl Config {
     pub fn parse() -> Result<Self, ConfigError> {
         let args = Args::parse();
+
+        // Handle completion generation first (exits if requested)
+        args.generate_completion_if_requested();
+
         let args_config = PartialConfig::from(args);
 
         let env_config = EnvConf::get_from_env().into();

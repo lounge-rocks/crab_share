@@ -11,7 +11,7 @@ crab_share <PATH>
 Options:
 
 | Option                | Default      | Description                       |
-| --------------------- | -------      | --------------------------------- |
+| --------------------- | ------------ | --------------------------------- |
 | -e, --expires         | 7d           | The time until the link expires.  |
 | -b, --bucket          |              | The bucket to upload to.          |
 | -u, --url             |              | The S3 url.                       |
@@ -136,11 +136,26 @@ It's also possible to just build the binary without installing it.
 cargo build --release
 ```
 
+## Shell Completions
+
+The application supports shell completions for bash, zsh, fish, elvish, and powershell. To generate completions for your shell, use the `--generate-completion` flag:
+
+### Zsh
+
+```bash
+crab_share --generate-completion zsh > /usr/local/share/zsh/site-functions/_crab_share
+# Or for user-local installation:
+mkdir -p ~/.zsh/completions
+crab_share --generate-completion zsh > ~/.zsh/completions/_crab_share
+# Add to your ~/.zshrc: fpath=(~/.zsh/completions $fpath)
+```
+
 ## Inner workings
 
 ### Configuration
 
 Internally, we use four different structs to configure the application.
+
 - `JSONConfig` and `JSONCredentials` are used to parse the config and credentials files from `~/.aws`.
 - `EnvConfig` is used to parse the environment variables.
 - `Args` contains all the options passed to the application.
