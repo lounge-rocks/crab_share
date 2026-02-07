@@ -5,7 +5,7 @@ use std::io::{Seek, Write};
 use std::iter::Iterator;
 use std::process::exit;
 use zip::result::ZipError;
-use zip::write::FileOptions;
+use zip::write::SimpleFileOptions;
 use zip::CompressionMethod;
 
 use std::fs::File;
@@ -66,7 +66,7 @@ where
     T: Write + Seek,
 {
     let mut zip = zip::ZipWriter::new(writer);
-    let options = FileOptions::default()
+    let options = SimpleFileOptions::default()
         .compression_method(method)
         .unix_permissions(0o755);
 
@@ -134,7 +134,7 @@ pub fn zip_file(src_file: &str, cmp_mthd: CompressionMethod) -> zip::result::Zip
         .progress_chars("#>-"));
 
     let mut zip = zip::ZipWriter::new(writer);
-    let mut options = FileOptions::default()
+    let mut options = SimpleFileOptions::default()
         .compression_method(cmp_mthd)
         .unix_permissions(0o755);
     if file_size >= 2u64.pow(32) {
