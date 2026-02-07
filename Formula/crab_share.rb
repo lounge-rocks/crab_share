@@ -13,6 +13,7 @@ class CrabShare < Formula
 
   def install
     system "cargo", "install", *std_cargo_args
+    generate_completions_from_executable(bin/"crab_share", "generate-completion", shells: [:bash, :zsh])
   end
 
   test do
