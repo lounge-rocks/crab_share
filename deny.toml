@@ -1,8 +1,5 @@
 [advisories]
-vulnerability = "deny"
-unmaintained = "deny"
-notice = "deny"
-unsound = "deny"
+version = 2
 ignore = []
 
 [bans]
@@ -13,12 +10,19 @@ unknown-registry = "deny"
 unknown-git = "deny"
 
 [licenses]
-unlicensed = "deny"
-allow-osi-fsf-free = "both"
-copyleft = "allow"
+version = 2
 # We want really high confidence when inferring licenses from text
 confidence-threshold = 0.93
 allow = [
-    "Unicode-DFS-2016",
+    "MIT",
+    "Apache-2.0",
+    "0BSD",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
     "CC0-1.0",
+    "CDLA-Permissive-2.0",
+    "ISC",
+    "OpenSSL",
+    "Unicode-3.0",
+    "Zlib",
 ]
