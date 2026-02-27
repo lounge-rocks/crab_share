@@ -19,7 +19,7 @@ bytesize = "2.3"
 
 tokio = { version = "1.49", features = ["rt", "macros", "rt-multi-thread"] }
 
-zip = "7.4"
+zip = "8.1"
 walkdir = "2.5"
 flume = "0.12"
 indicatif = "0.18"
