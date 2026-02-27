@@ -72,6 +72,8 @@ pub struct Config {
     pub zip_single_file: bool,
     /// Whether to purge expired files before uploading
     pub purge: bool,
+    /// Whether to print a QR code for the generated URL
+    pub qr: bool,
 }
 
 /// Partial config: All possible config options, all optional. To be merged with other configs.
@@ -95,6 +97,8 @@ struct PartialConfig {
     zip_single_file: Option<bool>,
     /// Whether to purge expired files before uploading
     purge: Option<bool>,
+    /// Whether to print a QR code for the generated URL
+    qr: Option<bool>,
 }
 
 impl PartialConfig {
@@ -109,6 +113,7 @@ impl PartialConfig {
             compression: self.compression.or(other.compression),
             zip_single_file: self.zip_single_file.or(other.zip_single_file),
             purge: self.purge.or(other.purge),
+            qr: self.qr.or(other.qr),
         }
     }
 
@@ -123,6 +128,7 @@ impl PartialConfig {
             compression: Some(CompressionMethod::Deflated),
             zip_single_file: Some(false),
             purge: Some(false),
+            qr: Some(false),
         }
     }
 }
@@ -215,6 +221,9 @@ impl Config {
             purge: partial_config
                 .purge
                 .expect("purge should always be set by static default"),
+            qr: partial_config
+                .qr
+                .expect("qr should always be set by static default"),
         })
     }
 }

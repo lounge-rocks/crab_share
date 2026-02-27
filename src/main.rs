@@ -1,5 +1,6 @@
 use bytesize::ByteSize;
 use indicatif::{ProgressBar, ProgressStyle};
+use qrcodegen::{QrCode, QrCodeEcc};
 use std::{fs, process::exit, time::Duration};
 
 use reqwest::Client;
@@ -16,6 +17,31 @@ mod upload_actor;
 mod zip;
 
 const ONE_HOUR: Duration = Duration::from_secs(3600);
+
+fn render_qr_ascii(data: &str) -> Result<String, qrcodegen::DataTooLong> {
+    let qr = QrCode::encode_text(data, QrCodeEcc::Low)?;
+    let mut out = String::new();
+    let border = 1;
+
+    let mut y = -border;
+    while y < qr.size() + border {
+        for x in -border..qr.size() + border {
+            let top = qr.get_module(x, y);
+            let bottom = qr.get_module(x, y + 1);
+            let ch = match (top, bottom) {
+                (true, true) => '█',
+                (true, false) => '▀',
+                (false, true) => '▄',
+                (false, false) => ' ',
+            };
+            out.push(ch);
+        }
+        out.push('\n');
+        y += 2;
+    }
+
+    Ok(out)
+}
 
 #[tokio::main]
 async fn main() {
@@ -260,7 +286,14 @@ async fn main() {
         .query_mut()
         .insert("response-cache-control", "no-cache, no-store");
     let url = action.sign(Duration::from_secs(config.expires.into()));
+    let final_url = url.to_string();
 
     // 2.2. Print url
-    println!("\n{}", url);
+    println!("\n{}", final_url);
+    if config.qr {
+        match render_qr_ascii(&final_url) {
+            Ok(qr) => println!("\n{}", qr),
+            Err(e) => eprintln!("warn: could not generate QR code: {}", e),
+        }
+    }
 }

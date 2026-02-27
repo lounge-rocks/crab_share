@@ -56,6 +56,7 @@ impl From<EnvConf> for PartialConfig {
             compression: json_credentials.compression.map(|c| c.into()),
             zip_single_file: json_credentials.zip_single_file,
             purge: json_credentials.purge,
+            qr: None,
         }
     }
 }

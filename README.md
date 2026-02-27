@@ -21,6 +21,7 @@ Options:
 | -c, --compression     | zstd         | The compression algorithm to use. |
 | -z, --zip-single-file | false        | Zip file before uploading.        |
 | -p, --purge           | false        | Purge expired files.              |
+| --qr                  | false        | Print QR code for final URL.      |
 
 ## Setup
 

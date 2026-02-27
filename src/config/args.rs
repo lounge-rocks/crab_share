@@ -45,6 +45,10 @@ pub(crate) struct Args {
     #[arg(short, long)]
     purge: bool,
 
+    /// Print a QR code for the generated share URL
+    #[arg(long)]
+    qr: bool,
+
     /// Generate shell completion script for the specified shell
     #[arg(long, value_name = "SHELL")]
     generate_completion: Option<Shell>,
@@ -77,6 +81,7 @@ impl From<Args> for PartialConfig {
             None
         };
         let purge = if args.purge { Some(true) } else { None };
+        let qr = if args.qr { Some(true) } else { None };
         PartialConfig {
             expires: args.expires,
             bucket: args.bucket,
@@ -87,6 +92,7 @@ impl From<Args> for PartialConfig {
             compression: args.compression.map(|mthd| mthd.into()),
             zip_single_file,
             purge,
+            qr,
         }
     }
 }
