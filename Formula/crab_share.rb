@@ -3,7 +3,7 @@ class CrabShare < Formula
   homepage "https://github.com/lounge-rocks/crab_share"
 
   url "https://github.com/lounge-rocks/crab_share/archive/refs/tags/0.3.0.tar.gz"
-  sha256 "baff2c14e438d5d9682f5e2dfb1c10760c62b028813b37468e3a87e1d15dc52b"
+  sha256 "fccdb99d1fed40ea1115dc20bf080f8eff8494ff50890860ada89042b00e2bbf"
 
   head do
     url "https://github.com/lounge-rocks/crab_share.git", branch: "main"
