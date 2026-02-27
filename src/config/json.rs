@@ -77,6 +77,7 @@ impl From<JSONConfig> for PartialConfig {
             compression: json_config.compression.map(|c| c.into()),
             zip_single_file: json_config.zip_single_file,
             purge: json_config.purge,
+            qr: None,
         }
     }
 }
