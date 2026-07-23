@@ -2,6 +2,7 @@
 
 use std::process::exit;
 
+use percent_encoding::percent_decode_str;
 use reqwest::Client;
 use rusty_s3::actions::{ListObjectsV2, S3Action};
 use rusty_s3::Bucket;
@@ -42,11 +43,10 @@ pub async fn purge(config: &crate::config::Config, bucket: &Bucket) {
         }
     };
     let mut files = resp.contents;
+    let mut continuation_token = resp.next_continuation_token;
 
-    while let Some(ref continuation_token) = resp.next_continuation_token {
-        action
-            .query_mut()
-            .insert("continuation-token", continuation_token);
+    while let Some(token) = continuation_token.take() {
+        action.query_mut().insert("continuation-token", token);
         let url: reqwest::Url = action.sign(ONE_HOUR);
         let resp = match client.get(url).send().await {
             Ok(r) => r,
@@ -77,11 +77,14 @@ pub async fn purge(config: &crate::config::Config, bucket: &Bucket) {
             }
         };
         files.extend(resp.contents);
+        continuation_token = resp.next_continuation_token;
     }
     // extract only the key from each file
     let files: Vec<_> = files
         .into_iter()
-        .map(|f| f.key)
+        // ListObjectsV2 requests encoding-type=url, so returned keys must be
+        // decoded before they are passed to DeleteObject.
+        .map(|f| decode_listed_key(f.key))
         // decode the timestamp from the uuid
         .flat_map(|k| {
             let mut parts = k.split('/');
@@ -129,5 +132,58 @@ pub async fn purge(config: &crate::config::Config, bucket: &Bucket) {
             }
         };
         println!("deleted expired file: {}", file);
+    }
+}
+
+fn decode_listed_key(key: String) -> String {
+    percent_decode_str(&key)
+        .decode_utf8()
+        .map(|decoded| decoded.into_owned())
+        .unwrap_or(key)
+}
+
+#[cfg(test)]
+mod tests {
+    use std::time::Duration;
+
+    use rusty_s3::actions::{DeleteObject, S3Action};
+    use rusty_s3::{Bucket, UrlStyle};
+
+    use super::decode_listed_key;
+
+    #[test]
+    fn decodes_url_encoded_s3_keys() {
+        let key = "01KK3RNR08TGMCJ9E1W0949R1Y/100%25%20complete/%E2%9C%93.pdf";
+
+        assert_eq!(
+            decode_listed_key(key.to_string()),
+            "01KK3RNR08TGMCJ9E1W0949R1Y/100% complete/✓.pdf"
+        );
+    }
+
+    #[test]
+    fn leaves_invalid_utf8_encoding_unchanged() {
+        let key = "01KK3RNR08TGMCJ9E1W0949R1Y/file%FF.pdf";
+
+        assert_eq!(decode_listed_key(key.to_string()), key);
+    }
+
+    #[test]
+    fn signs_the_decoded_key_for_deletion() {
+        let bucket = Bucket::new(
+            "https://s3.example.com".parse().unwrap(),
+            UrlStyle::Path,
+            "bucket",
+            "region",
+        )
+        .unwrap();
+        let key =
+            decode_listed_key("01KK3RNR08TGMCJ9E1W0949R1Y/Part%20lot100-2%25.pdf".to_string());
+        let action = DeleteObject::new(&bucket, None, &key);
+
+        assert_eq!(
+            action.sign(Duration::from_secs(60)).as_str(),
+            "https://s3.example.com/bucket/01KK3RNR08TGMCJ9E1W0949R1Y/Part%20lot100-2%25.pdf"
+        );
     }
 }
