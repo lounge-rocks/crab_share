@@ -5,9 +5,7 @@ class CrabShare < Formula
   url "https://github.com/lounge-rocks/crab_share/archive/refs/tags/0.3.1.tar.gz"
   sha256 "359f74a6eddf80df1646ab8c6fba48db9606e4ba939f2b569d5aad413ea1d123"
 
-  head do
-    url "https://github.com/lounge-rocks/crab_share.git", branch: "main"
-  end
+  head "https://github.com/lounge-rocks/crab_share.git", branch: "main"
 
   depends_on "rust" => :build
 
