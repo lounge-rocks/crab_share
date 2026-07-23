@@ -360,6 +360,7 @@ dependencies = [
  "flume",
  "fs_extra",
  "indicatif",
+ "percent-encoding",
  "qrcodegen",
  "reqwest",
  "rusty-s3",
