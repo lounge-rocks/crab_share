@@ -12,10 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Install stable toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
+        uses: dtolnay/rust-toolchain@stable
       - run: cargo fmt --check
       - run: cargo check
       - run: |
