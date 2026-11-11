@@ -31,7 +31,7 @@
               src = lib.cleanSource self;
               cargoLock = { lockFile = ./Cargo.lock; };
               nativeBuildInputs = with pkgs; lib.optionals stdenv.isLinux [ pkg-config installShellFiles ];
-              buildInputs = with pkgs; [ openssl ]; # TODO: check how to make this work on darwin?
+              buildInputs = with pkgs; [ openssl zstd aws-lc ]; # TODO: check how to make this work on darwin?
               postInstall = ''
                 installShellCompletion --cmd crab_share \
                   --bash <($out/bin/crab_share --generate-completion bash) \
